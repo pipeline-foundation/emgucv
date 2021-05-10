@@ -61,6 +61,7 @@ jobs:
           msbuild Emgu.CV.sln `
           -p:Configuration=Release `
           -p:Platform=x64 `
+          -p:UseSharedCompilation=false `
           -t:Restore,Build
 
       - name: Perform CodeQL Analysis
