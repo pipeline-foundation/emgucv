@@ -44,7 +44,9 @@ jobs:
       - name: Build native binary
         id: build_native_binary
         run: |
-          .\platforms\windows\Build_Binary_x86-64_doc.bat
+          Push-Location .\platforms\windows\
+          Get-ChildItem
+          .\Build_Binary_x86-64_doc.bat
 
       - name: Initialize CodeQL
         id: init_codeql
