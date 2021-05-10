@@ -14,55 +14,54 @@ jobs:
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.0.2
 
-      - name: Check msbuild version
+      - name: Configure Pagefile
+        id: config_pagefile
+        uses: al-cheb/configure-pagefile-action@v1.2
+        with:
+            minimum-size: 8GB
+            maximum-size: 32GB
+            disk-root: "D:"
+
+      - name: Clean .NET cache
+        id: clean_dotnet_cache
+        shell: pwsh
         run: |
-          msbuild
+          dotnet clean .\Solution\Windows.Desktop\Emgu.CV.sln `
+          --configuration Release
+          dotnet nuget locals all --clear
 
-      # - name: Configure Pagefile
-      #   id: config_pagefile
-      #   uses: al-cheb/configure-pagefile-action@v1.2
-      #   with:
-      #       minimum-size: 8GB
-      #       maximum-size: 32GB
-      #       disk-root: "D:"
+      - name: Checkout repository
+        id: checkout_repo
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      # - name: Clean .NET cache
-      #   id: clean_dotnet_cache
-      #   shell: pwsh
-      #   run: |
-      #     dotnet clean .\Solution\Windows.Desktop\Emgu.CV.sln --configuration Release
-      #     dotnet nuget locals all --clear
+      - name: Checkout submodules
+        id: checkout_submodules
+        run: |
+          git submodule update --init --recursive
 
-      # - name: Checkout repository
-      #   id: checkout_repo
-      #   uses: actions/checkout@v2
-      #   with:
-      #     token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build native binary
+        id: build_native_binary
+        run: |
+          .\platforms\windows\Build_Binary_x86-64_doc.bat
 
-      # - name: Check out submodules
-      #   id: checkout_submodules
-      #   run: |
-      #     git submodule update --init --recursive
+      - name: Initialize CodeQL
+        id: init_codeql
+        uses: github/codeql-action/init@v1
+        # with:
+        #   queries: security-and-quality
 
-      # - name: Initialize CodeQL
-      #   id: init_codeql
-      #   uses: github/codeql-action/init@v1
-      #   # with:
-      #   #   queries: security-and-quality
+      - name: Build solution
+        id: build_solution
+        run: |
+          msbuild Emgu.CV.sln `
+          -p:Configuration=Release `
+          -p:Platform=x64 `
+          -t:Restore,Build
 
-      # - name: Build native binary
-      #   id: build_native_binary
-      #   run: |
-      #     .\platforms\windows\Build_Binary_x86-64_doc.bat
-
-      # - name: Build Emgu solution
-      #   id: build_solution
-      #   run: |
-      #     msbuild Emgu.CV.sln -p:Configuration=Release -p:Platform=x64 -target:Restore
-      #     msbuild Emgu.CV.sln -p:Configuration=Release -p:Platform=x64
-
-      # - name: Perform CodeQL Analysis
-      #   id: analyze_codeql
-      #   uses: github/codeql-action/analyze@v1
+      - name: Perform CodeQL Analysis
+        id: analyze_codeql
+        uses: github/codeql-action/analyze@v1
 
 # Built with ❤ by [Pipeline Foundation](https://pipeline.foundation)
