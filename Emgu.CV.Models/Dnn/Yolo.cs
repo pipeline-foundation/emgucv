@@ -26,7 +26,7 @@ namespace Emgu.CV.Models
     /// </summary>
     public class Yolo : DisposableObject, IProcessAndRenderModel
     {
-        private String _modelFolderName = "yolo_v3";
+        private String _modelFolderName = "yolo";
 
         private DetectionModel _yoloDetectionModel = null;
 
@@ -36,7 +36,16 @@ namespace Emgu.CV.Models
         /// The Yolo model version
         /// </summary>
         public enum YoloVersion
-        {
+        {   
+            /// <summary>
+            /// Yolo V4
+            /// </summary>
+            YoloV4,
+            /// <summary>
+            /// Yolo V4 tiny
+            /// </summary>
+            YoloV4Tiny,
+
             /// <summary>
             /// Yolo v3
             /// </summary>
@@ -57,7 +66,7 @@ namespace Emgu.CV.Models
         /// <param name="version">The model version</param>
         /// <param name="onDownloadProgressChanged">Call back method during download</param>
         /// <returns>Asyn task</returns>
-#if (UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_STANDALONE)
+#if UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_STANDALONE || UNITY_WEBGL
         public IEnumerator Init(
             YoloVersion version = YoloVersion.YoloV3,
             System.Net.DownloadProgressChangedEventHandler onDownloadProgressChanged = null)
@@ -71,6 +80,8 @@ namespace Emgu.CV.Models
             {
                 FileDownloadManager manager = new FileDownloadManager();
 
+                bool version3 = false;
+                bool version4 = false;
                 if (version == YoloVersion.YoloV3Spp)
                 {
                     manager.AddFile(
@@ -81,6 +92,7 @@ namespace Emgu.CV.Models
                         "https://github.com/pjreddie/darknet/raw/master/cfg/yolov3-spp.cfg",
                         _modelFolderName,
                         "7A4EC2D7427340FB12059F2B0EF76D6FCFCAC132CC287CBBF0BE5E3ABAA856FD");
+                    version3 = true;
                 }
                 else if (version == YoloVersion.YoloV3)
                 {
@@ -92,6 +104,7 @@ namespace Emgu.CV.Models
                         "https://github.com/pjreddie/darknet/raw/master/cfg/yolov3.cfg",
                         _modelFolderName,
                         "22489EA38575DFA36C67A90048E8759576416A79D32DC11E15D2217777B9A953");
+                    version3 = true;
                 }
                 else if (version == YoloVersion.YoloV3Tiny)
                 {
@@ -103,16 +116,45 @@ namespace Emgu.CV.Models
                         "https://github.com/pjreddie/darknet/raw/master/cfg/yolov3-tiny.cfg",
                         _modelFolderName,
                         "84EB7A675EF87C906019FF5A6E0EFFE275D175ADB75100DCB47F0727917DC2C7");
+                    version3 = true;
+                } else if (version == YoloVersion.YoloV4)
+                {
+                    manager.AddFile(
+                        "https://github.com/aj-ames/YOLOv4-OpenCV-CUDA-DNN/raw/dd58dba457fff98e483e0f67113e0be1f17f2120/models/yolov4.weights",
+                        _modelFolderName,
+                        "8463FDE6EE7130A947A73104CE73C6FA88618A9D9ECD4A65D0B38F07E17EC4E4");
+                    manager.AddFile(
+                        "https://github.com/aj-ames/YOLOv4-OpenCV-CUDA-DNN/raw/dd58dba457fff98e483e0f67113e0be1f17f2120/models/yolov4.cfg",
+                        _modelFolderName,
+                        "A15524EC710005ADD4EB672140CF15CBFE46DEA0561F1AEA90CB1140B466073E");
+                    version4 = true;
+                }
+                else if (version == YoloVersion.YoloV4Tiny)
+                {
+                    manager.AddFile(
+                        "https://github.com/aj-ames/YOLOv4-OpenCV-CUDA-DNN/raw/dd58dba457fff98e483e0f67113e0be1f17f2120/models/yolov4-tiny.weights",
+                        _modelFolderName,
+                        "CF9FBFD0F6D4869B35762F56100F50ED05268084078805F0E7989EFE5BB8CA87");
+                    manager.AddFile(
+                        "https://github.com/aj-ames/YOLOv4-OpenCV-CUDA-DNN/raw/dd58dba457fff98e483e0f67113e0be1f17f2120/models/yolov4-tiny.cfg",
+                        _modelFolderName,
+                        "6CBF5ECE15235F66112E0BEDEBB324F37199B31AEE385B7E18F0BBFB536B258E");
+                    version4 = true;
                 }
 
-                manager.AddFile("https://github.com/pjreddie/darknet/raw/master/data/coco.names",
-                    _modelFolderName,
-                    "634A1132EB33F8091D60F2C346ABABE8B905AE08387037AED883953B7329AF84");
+                if (version3)
+                    manager.AddFile("https://github.com/pjreddie/darknet/raw/master/data/coco.names",
+                        _modelFolderName,
+                        "634A1132EB33F8091D60F2C346ABABE8B905AE08387037AED883953B7329AF84");
+                if (version4)
+                    manager.AddFile("https://github.com/aj-ames/YOLOv4-OpenCV-CUDA-DNN/raw/dd58dba457fff98e483e0f67113e0be1f17f2120/models/coco.names",
+                        _modelFolderName,
+                        "634A1132EB33F8091D60F2C346ABABE8B905AE08387037AED883953B7329AF84");
 
                 if (onDownloadProgressChanged != null)
                     manager.OnDownloadProgressChanged += onDownloadProgressChanged;
 
-#if (UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_STANDALONE)
+#if UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_STANDALONE || UNITY_WEBGL
                 yield return manager.Download();
 #else
                 await manager.Download();
@@ -175,13 +217,13 @@ namespace Emgu.CV.Models
         /// <param name="onDownloadProgressChanged">Callback when download progress has been changed</param>
         /// <param name="initOptions">A string, can be either "YoloV3", "YoloV3Spp", "YoloV3Tiny", specify the yolo model to use. Deafult to use "YoloV3". </param>
         /// <returns>Async task</returns>
-#if (UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_STANDALONE)
+#if UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_STANDALONE || UNITY_WEBGL
         public IEnumerator Init(DownloadProgressChangedEventHandler onDownloadProgressChanged = null, Object initOptions = null)
 #else
         public async Task Init(DownloadProgressChangedEventHandler onDownloadProgressChanged = null, Object initOptions = null)
 #endif
         {
-            YoloVersion v = YoloVersion.YoloV3;
+            YoloVersion v = YoloVersion.YoloV4;
             if (initOptions != null && ((initOptions as String) != null))
             {
                 String versionStr = initOptions as String;
@@ -189,8 +231,12 @@ namespace Emgu.CV.Models
                     v = YoloVersion.YoloV3Spp;
                 else if (versionStr.Equals("YoloV3Tiny"))
                     v = YoloVersion.YoloV3Tiny;
+                else if (versionStr.Equals("YoloV3"))
+                    v = YoloVersion.YoloV3;
+                else if (versionStr.Equals("YoloV4Tiny"))
+                    v = YoloVersion.YoloV4Tiny;
             }
-#if (UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_STANDALONE)
+#if UNITY_EDITOR || UNITY_IOS || UNITY_ANDROID || UNITY_STANDALONE || UNITY_WEBGL
             yield return Init(v, onDownloadProgressChanged);
 #else
             await Init(v, onDownloadProgressChanged);
