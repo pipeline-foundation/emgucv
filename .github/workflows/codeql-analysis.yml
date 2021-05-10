@@ -22,14 +22,6 @@ jobs:
             maximum-size: 32GB
             disk-root: "D:"
 
-      - name: Clean .NET cache
-        id: clean_dotnet_cache
-        shell: pwsh
-        run: |
-          dotnet clean .\Solution\Windows.Desktop\Emgu.CV.sln `
-          --configuration Release
-          dotnet nuget locals all --clear
-
       - name: Checkout repository
         id: checkout_repo
         uses: actions/checkout@v2
@@ -40,6 +32,14 @@ jobs:
         id: checkout_submodules
         run: |
           git submodule update --init --recursive
+
+      - name: Clean .NET cache
+        id: clean_dotnet_cache
+        shell: pwsh
+        run: |
+          Push-Location .\Solution\Windows.Desktop\
+          dotnet clean Emgu.CV.sln --configuration Release
+          dotnet nuget locals all --clear
 
       - name: Build native binary
         id: build_native_binary
@@ -55,6 +55,7 @@ jobs:
       - name: Build solution
         id: build_solution
         run: |
+          Push-Location .\Solution\Windows.Desktop\
           msbuild Emgu.CV.sln `
           -p:Configuration=Release `
           -p:Platform=x64 `
