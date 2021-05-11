@@ -12,6 +12,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Add msbuild to PATH
+        id: msbuild_path
         uses: microsoft/setup-msbuild@v1.0.2
 
       - name: Configure Pagefile
