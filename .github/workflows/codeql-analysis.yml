@@ -12,7 +12,7 @@ jobs:
     name: Analyze
     runs-on: [ self-hosted, Windows ]
     steps:
-      - name: Add MSBuild 16.9 to PATH
+      - name: Add Visual Studio MSBuild to PATH
         id: msbuild_path
         uses: microsoft/setup-msbuild@v1.0.2
 
