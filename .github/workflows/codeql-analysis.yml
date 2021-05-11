@@ -11,65 +11,61 @@ jobs:
     name: CodeQL Analysis
     runs-on: [self-hosted, Windows, x64]
     steps:
-      - name: Test self-hosted runner
+      - name: Add msbuild to PATH
+        id: msbuild_path
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Configure Pagefile
+        id: config_pagefile
+        uses: al-cheb/configure-pagefile-action@v1.2
+        with:
+            minimum-size: 8GB
+            maximum-size: 32GB
+            disk-root: "D:"
+
+      - name: Checkout repository
+        id: checkout_repo
+        uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout submodules
+        id: checkout_submodules
         run: |
-          gci
+          git submodule update --init --recursive
 
-      # - name: Add msbuild to PATH
-      #   id: msbuild_path
-      #   uses: microsoft/setup-msbuild@v1.0.2
+      - name: Clean .NET cache
+        id: clean_dotnet_cache
+        shell: pwsh
+        run: |
+          Push-Location .\Solution\Windows.Desktop\
+          dotnet clean Emgu.CV.sln --configuration Release
+          dotnet nuget locals all --clear
 
-      # - name: Configure Pagefile
-      #   id: config_pagefile
-      #   uses: al-cheb/configure-pagefile-action@v1.2
-      #   with:
-      #       minimum-size: 8GB
-      #       maximum-size: 32GB
-      #       disk-root: "D:"
+      - name: Build native binary
+        id: build_native_binary
+        run: |
+          Push-Location .\platforms\windows\
+          .\Build_Binary_x86-64_doc.bat
 
-      # - name: Checkout repository
-      #   id: checkout_repo
-      #   uses: actions/checkout@v2
-      #   with:
-      #     token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Initialize CodeQL
+        id: init_codeql
+        uses: github/codeql-action/init@v1
+        with:
+          languages: csharp
 
-      # - name: Checkout submodules
-      #   id: checkout_submodules
-      #   run: |
-      #     git submodule update --init --recursive
+      - name: Build solution
+        id: build_solution
+        run: |
+          Push-Location .\Solution\Windows.Desktop\
+          msbuild Emgu.CV.sln `
+          -p:Configuration=Release `
+          -p:Platform=x64 `
+          -p:UseSharedCompilation=false `
+          -t:Restore,Build
 
-      # - name: Clean .NET cache
-      #   id: clean_dotnet_cache
-      #   shell: pwsh
-      #   run: |
-      #     Push-Location .\Solution\Windows.Desktop\
-      #     dotnet clean Emgu.CV.sln --configuration Release
-      #     dotnet nuget locals all --clear
-
-      # - name: Build native binary
-      #   id: build_native_binary
-      #   run: |
-      #     Push-Location .\platforms\windows\
-      #     .\Build_Binary_x86-64_doc.bat
-
-      # - name: Initialize CodeQL
-      #   id: init_codeql
-      #   uses: github/codeql-action/init@v1
-      #   with:
-      #     languages: csharp
-
-      # - name: Build solution
-      #   id: build_solution
-      #   run: |
-      #     Push-Location .\Solution\Windows.Desktop\
-      #     msbuild Emgu.CV.sln `
-      #     -p:Configuration=Release `
-      #     -p:Platform=x64 `
-      #     -p:UseSharedCompilation=false `
-      #     -t:Restore,Build
-
-      # - name: Perform CodeQL Analysis
-      #   id: analyze_codeql
-      #   uses: github/codeql-action/analyze@v1
+      - name: Perform CodeQL Analysis
+        id: analyze_codeql
+        uses: github/codeql-action/analyze@v1
 
 # Built with ❤ by [Pipeline Foundation](https://pipeline.foundation)
