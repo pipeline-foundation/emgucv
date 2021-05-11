@@ -45,14 +45,13 @@ jobs:
         id: build_native_binary
         run: |
           Push-Location .\platforms\windows\
-          Get-ChildItem
           .\Build_Binary_x86-64_doc.bat
 
       - name: Initialize CodeQL
         id: init_codeql
         uses: github/codeql-action/init@v1
-        # with:
-        #   queries: security-and-quality
+        with:
+          languages: csharp
 
       - name: Build solution
         id: build_solution
